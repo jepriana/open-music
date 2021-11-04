@@ -1,0 +1,38 @@
+{
+  "name": "open-music",
+  "version": "1.0.0",
+  "description": "An open free music API",
+  "main": "index.js",
+  "scripts": {
+    "start-prod": "NODE_ENV=production node ./src/server.js",
+    "start-dev": "nodemon ./src/server.js",
+    "migrate": "node-pg-migrate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jepriana/open-music.git"
+  },
+  "keywords": [
+    "music"
+  ],
+  "author": "I Wayan Jepriana",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jepriana/open-music/issues"
+  },
+  "homepage": "https://github.com/jepriana/open-music#readme",
+  "dependencies": {
+    "@hapi/hapi": "^20.2.1",
+    "dotenv": "^10.0.0",
+    "joi": "^17.4.2",
+    "nanoid": "^3.1.30",
+    "node-pg-migrate": "^6.0.0",
+    "pg": "^8.7.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.25.2",
+    "nodemon": "^2.0.14"
+  }
+}
