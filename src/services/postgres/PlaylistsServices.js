@@ -6,15 +6,16 @@ const NotFoundError = require('../../exceptions/NotFoundError');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class PlaylistsService {
-  constructor() {
+  constructor(playlistService) {
     this._pool = new Pool();
+    this._playlistService = playlistService;
   }
 
-  async addPlaylist({ name, userId }) {
+  async addPlaylist({ name, owner }) {
     const id = `playlist-${nanoid(16)}`;
     const query = {
       text: 'INSERT INTO playlists VALUES ($1, $2, $3) RETURNING id',
-      values: [id, name, userId],
+      values: [id, name, owner],
     };
 
     const result = await this._pool.query(query);
@@ -28,10 +29,11 @@ class PlaylistsService {
 
   async getPlaylists(owner) {
     const query = {
-      text: `SELECT playlists.* FROM playlists 
+      text: `SELECT playlists.id, playlists.name, users.username FROM playlists 
+        INNER JOIN users ON playlists.owner = users.id
         LEFT JOIN collaborations ON playlists.id = collaborations.playlist_id
         WHERE playlists.owner = $1 OR collaborations.user_id = $1
-        GROUP BY playlists.id`,
+        GROUP BY playlists.id, users.username`,
       values: [owner],
     };
     const result = await this._pool.query(query);
@@ -40,7 +42,7 @@ class PlaylistsService {
 
   async getPlaylistById(id) {
     const query = {
-      text: `SELECT playlists.*, users.username 
+      text: `SELECT playlists.id, playlists.name, users.username 
         FROM playlists LEFT JOIN users
         ON playlists.owner = users.id
         WHERE playlists.id=$1`,
@@ -101,16 +103,16 @@ class PlaylistsService {
     }
   }
 
-  async verifyPlaylistAccess(playlistId, userId) {
+  async verifyPlaylistAccess(playlistId, owner) {
     try {
-      await this.verifyPlaylistOwner(playlistId, userId);
+      await this.verifyPlaylistOwner(playlistId, owner);
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error;
       }
 
       try {
-        await this._collaborationService.verifyCollaborator(playlistId, userId);
+        await this._collaborationService.verifyCollaborator(playlistId, owner);
       } catch {
         throw error;
       }
