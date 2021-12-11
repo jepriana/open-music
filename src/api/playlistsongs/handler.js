@@ -1,9 +1,11 @@
+/* eslint-disable no-console */
 const ClientError = require('../../exceptions/ClientError');
 
 /* eslint-disable no-underscore-dangle */
-class PlaylistsHandler {
-  constructor(service, validator) {
+class PlaylistSongsHandler {
+  constructor(service, playlistService, validator) {
     this._service = service;
+    this._playlistService = playlistService;
     this._validator = validator;
 
     this.postPlaylistSongHandler = this.postPlaylistSongHandler.bind(this);
@@ -17,16 +19,15 @@ class PlaylistsHandler {
       const { songId } = request.payload;
       const { playlistId } = request.params;
       const { id: credentialId } = request.auth.credentials;
-
-      await this._service.verifyPlaylistAccess(playlistId, credentialId);
+      await this._playlistService.verifyPlaylistAccess(playlistId, credentialId);
 
       await this._service.addPlaylistSong({
-        songId,
+        playlistId, songId,
       });
 
       const response = h.response({
         status: 'success',
-        message: 'Lagu berhasil ditambahkan',
+        message: 'Lagu berhasil ditambahkan ke playlist',
       });
 
       response.code(201);
@@ -51,29 +52,53 @@ class PlaylistsHandler {
     }
   }
 
-  async getPlaylistSongsHandler(request) {
-    const { id: credentialId } = request.auth.credentials;
-    const playlists = await this._service.getPlaylists(credentialId);
-    return {
-      status: 'success',
-      data: {
-        playlists,
-      },
-    };
+  async getPlaylistSongsHandler(request, h) {
+    try {
+      const { playlistId } = request.params;
+      const { id: credentialId } = request.auth.credentials;
+
+      await this._playlistService.verifyPlaylistAccess(playlistId, credentialId);
+
+      const songs = await this._service.getPlaylistSongs(playlistId);
+      return {
+        status: 'success',
+        data: {
+          songs,
+        },
+      };
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // SERVER ERROR
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      return response;
+    }
   }
 
   async deletePlaylistSongHandler(request, h) {
     try {
-      const { id } = request.params;
-
+      this._validator.validatePlaylistSongPayload(request.payload);
+      const { songId } = request.payload;
+      const { playlistId } = request.params;
       const { id: credentialId } = request.auth.credentials;
+      await this._playlistService.verifyPlaylistAccess(playlistId, credentialId);
 
-      await this._service.verifyNoteOwner(id, credentialId);
-      await this._service.deletePlaylistById(id);
+      await this._service.deletePlaylistSong(playlistId, songId);
 
       return {
         status: 'success',
-        message: 'Playlist berhasil dihapus',
+        message: 'Lagu berhasil dihapus dari playlist',
       };
     } catch (error) {
       if (error instanceof ClientError) {
@@ -96,4 +121,4 @@ class PlaylistsHandler {
   }
 }
 
-module.exports = PlaylistsHandler;
+module.exports = PlaylistSongsHandler;

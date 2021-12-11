@@ -2,7 +2,7 @@
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
-const NotFoundError = require('../../exceptions/NotFoundError');
+const ClientError = require('../../exceptions/ClientError');
 
 class PlaylistSongsService {
   constructor() {
@@ -28,24 +28,24 @@ class PlaylistSongsService {
   async getPlaylistSongs(playlistId) {
     const query = {
       text: `SELECT songs.id, songs.title, songs.performer
-        FROM playlistsongs INNER JOIN users ON playlistsongs.song_id = songs.id
-        WHERE playlistsongs.id = $1`,
+        FROM playlistsongs INNER JOIN songs ON playlistsongs.song_id = songs.id
+        WHERE playlistsongs.playlist_id = $1`,
       values: [playlistId],
     };
     const result = await this._pool.query(query);
     return result.rows;
   }
 
-  async deletePlaylistSongById(id) {
-    const query = {
-      text: 'DELETE FROM playlistsongs WHERE id = $1 RETURNING id',
-      values: [id],
+  async deletePlaylistSong(playlistId, songId) {
+    const deleteQuery = {
+      text: 'DELETE FROM playlistsongs WHERE playlist_id = $1 AND song_id = $2 RETURNING id',
+      values: [playlistId, songId],
     };
 
-    const result = await this._pool.query(query);
+    const deleteResult = await this._pool.query(deleteQuery);
 
-    if (!result.rows.length) {
-      throw new NotFoundError('Gagal menghapus Lagu. Id tidak ditemukan.');
+    if (!deleteResult.rows.length) {
+      throw new ClientError('Gagal menghapus Lagu. Id Playlist atau Lagu tidak ditemukan.');
     }
   }
 }
