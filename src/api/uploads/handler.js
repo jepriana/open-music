@@ -19,7 +19,7 @@ class UploadsHandler {
       const response = h.response({
         status: 'success',
         data: {
-          pictureUrl: `http://${process.env.HOST}:${process.env.PORT}/upload/images/${fileName}`,
+          pictureUrl: `http://${process.env.HOST}:${process.env.PORT}/upload/pictures/${fileName}`,
         },
       });
       response.code(201);
